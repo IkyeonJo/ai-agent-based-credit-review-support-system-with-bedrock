@@ -1,0 +1,25 @@
+{
+  "run_id": "c7fbadf17972478c9997321a5402e644",
+  "created_at": "2026-09-13T07:10:25.072678+00:00",
+  "mode": "live",
+  "policy_version": "structured-pii-v1",
+  "case_id": "CASE_001",
+  "tokenized_fields": [
+    "representative_name"
+  ],
+  "dropped_fields": [
+    "email",
+    "phone",
+    "case_id",
+    "company_id"
+  ],
+  "status": "PASS",
+  "usage": {
+    "inputTokens": 374,
+    "outputTokens": 283,
+    "totalTokens": 657,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "stop_reason": "end_turn"
+}

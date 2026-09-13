@@ -1,0 +1,16 @@
+{
+  "run_id": "f33358ddfe174fe68370bc2e840f3d63",
+  "created_at": "2026-09-13T07:28:40.615281+00:00",
+  "mode": "mock",
+  "as_of": "2026-09-13",
+  "retriever": "local-char-tfidf",
+  "status": "PASS",
+  "retrieved_source_ids": [
+    "POLICY_CASHFLOW_V2_P1",
+    "COMPANY_A_FINANCE_V1_P1"
+  ],
+  "cited_source_ids": [
+    "POLICY_CASHFLOW_V2_P1"
+  ],
+  "usage": {}
+}

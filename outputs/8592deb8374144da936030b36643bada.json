@@ -1,0 +1,24 @@
+{
+  "run_id": "8592deb8374144da936030b36643bada",
+  "created_at": "2026-09-13T06:39:04.003556+00:00",
+  "auth_mode": "api_key",
+  "request_region": "ap-northeast-2",
+  "model_id": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "elapsed_seconds": 4.628,
+  "usage": {
+    "inputTokens": 426,
+    "outputTokens": 493,
+    "totalTokens": 919,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "stop_reason": "end_turn",
+  "request_id": "d187c948-2145-4e57-aad7-f39b9a20a447",
+  "calculated_metrics": {
+    "revenue_growth_pct": -15.0,
+    "operating_margin_pct": 4.0,
+    "debt_to_equity_pct": 200.0
+  },
+  "validation_status": "FAILED",
+  "raw_response_for_synthetic_debug": "```json\n{\n  \"summary\": \"제조업체로서 매출이 전년 대비 15% 감소(10,000백만원 → 8,500백만원)했으나, 영업이익률은 4.0%를 유지하고 있습니다. 부채비율이 200%로 높은 수준이며, 총부채 6,000백만원이 자본금 3,000백만원의 2배에 달합니다. 매출 감소 추세와 높은 부채 수준이 주요 관심사입니다.\",\n  \"risk_factors\": [\n    \"매출 감소 추세: 전년 대비 15% 감소로 사업 규모 축소 중\",\n    \"높은 부채비율: 200% 수준으로 자본대비 부채가 과다한 상태\",\n    \"제한된 영업수익성: 4.0%의 영업이익률로 추가 채무 감당 능력이 제한적\",\n    \"현금흐름 불명확: 이익 창출 여부와 운영자금 현황 파악 필요\"\n  ],\n  \"additional_documents\": [\n    \"최근 3년 재무제표(손익계산서, 재무상태표, 현금흐름표)\",\n    \"매출 감소 사유 설명서 및 향후 경영계획서\",\n    \"부채 구성 내역 및 상환 일정표\",\n    \"담보 자산 현황 및 평가자료\",\n    \"최근 분기 재무현황 및 자금대출 현황\",\n    \"주요 거래처 및 매출 집중도 현황\"\n  ]\n}\n```"
+}

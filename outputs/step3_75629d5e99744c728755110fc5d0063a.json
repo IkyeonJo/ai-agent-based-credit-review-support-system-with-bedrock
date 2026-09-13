@@ -1,0 +1,22 @@
+{
+  "run_id": "75629d5e99744c728755110fc5d0063a",
+  "created_at": "2026-09-13T07:29:12.631439+00:00",
+  "mode": "live",
+  "as_of": "2026-09-13",
+  "retriever": "local-char-tfidf",
+  "status": "PASS",
+  "retrieved_source_ids": [
+    "POLICY_CASHFLOW_V2_P1",
+    "COMPANY_A_FINANCE_V1_P1"
+  ],
+  "cited_source_ids": [
+    "POLICY_CASHFLOW_V2_P1"
+  ],
+  "usage": {
+    "inputTokens": 599,
+    "outputTokens": 287,
+    "totalTokens": 886,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  }
+}

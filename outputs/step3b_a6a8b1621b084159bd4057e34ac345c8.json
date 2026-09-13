@@ -1,0 +1,28 @@
+{
+  "run_id": "a6a8b1621b084159bd4057e34ac345c8",
+  "created_at": "2026-09-13T08:40:58.173581+00:00",
+  "retriever": "pgvector-exact-cosine",
+  "embedding_model": "intfloat/multilingual-e5-small",
+  "mode": "live",
+  "status": "PASS",
+  "retrieved": [
+    {
+      "source_id": "POLICY_CASHFLOW_V2_P1",
+      "similarity": 0.8757
+    },
+    {
+      "source_id": "COMPANY_A_FINANCE_V1_P1",
+      "similarity": 0.8039
+    }
+  ],
+  "usage": {
+    "inputTokens": 599,
+    "outputTokens": 275,
+    "totalTokens": 874,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "cited_source_ids": [
+    "POLICY_CASHFLOW_V2_P1"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "run_id": "5306a53389c54823a543c2d6e8d6af17",
+  "created_at": "2026-09-13T07:30:22.753689+00:00",
+  "mode": "live",
+  "as_of": "2026-09-13",
+  "retriever": "local-char-tfidf",
+  "status": "FAILED",
+  "error_type": "PolicyViolation",
+  "reason_code": "CLOUD_TRANSFER_DENIED"
+}

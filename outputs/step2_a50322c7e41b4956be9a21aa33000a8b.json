@@ -1,0 +1,19 @@
+{
+  "run_id": "a50322c7e41b4956be9a21aa33000a8b",
+  "created_at": "2026-09-13T07:07:34.202221+00:00",
+  "mode": "mock",
+  "policy_version": "structured-pii-v1",
+  "case_id": "CASE_001",
+  "tokenized_fields": [
+    "representative_name"
+  ],
+  "dropped_fields": [
+    "email",
+    "phone",
+    "case_id",
+    "company_id"
+  ],
+  "status": "PASS",
+  "usage": {},
+  "stop_reason": "end_turn"
+}
