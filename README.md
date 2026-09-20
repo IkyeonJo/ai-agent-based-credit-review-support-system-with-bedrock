@@ -18,6 +18,74 @@
 - SQLite 체크포인트 기반 담당자 검토 대기·재개
 - FastAPI 웹 화면에서 분석 근거 확인, 의견 수정 및 검토 결과 저장
 
+## 전체 아키텍처
+
+로컬 환경이 온프레미스 역할을 수행하고,
+Live 모드에서는 AWS Bedrock으로 분석을 요청합니다.
+
+```mermaid
+flowchart TB
+    User["담당자"] --> UI["웹 화면"]
+    UI --> API["FastAPI"]
+
+    subgraph Local["로컬 환경 · 온프레미스 역할 모사"]
+        API --> Graph["LangGraph 오케스트레이션"]
+        Graph --- Checkpoint[("SQLite 체크포인트")]
+
+        Graph --> Docs["서류 검증"]
+        Docs --> Agents["분석 작업 병렬 실행<br/>재무 · 산업 · 관계사 · 담보"]
+
+        Agents --> Retrieval["역할 · 기업 접근 범위 · 유효기간 필터"]
+        Embedding["로컬 임베딩 모델"] --> Retrieval
+        Retrieval <--> VectorDB[("PostgreSQL · pgvector")]
+
+        Retrieval --> Gateway["LLM 호출 전 검사<br/>외부 전송 허용 여부 · 개인정보"]
+        Gateway --> Mock["Mock 응답"]
+        Mock --> Validation["응답 구조 · 출처 ID · 원문 인용 검증"]
+
+        Validation --> Join["분석 결과 합류"]
+        Join --> Retry{"분석 결과"}
+        Retry -->|"재시도 가능한 실패"| RetryNode["횟수 제한 재시도"]
+        RetryNode --> Agents
+        Retry -->|"재시도 불가 또는 소진"| Stop["실패 종료"]
+        Retry -->|"모두 성공"| Opinion["종합의견 구성"]
+        Opinion --> Draft["신청서 초안 구성"]
+        Draft --> OutputCheck["출력 검증"]
+        OutputCheck -->|"보정 필요 · 횟수 제한"| Draft
+        OutputCheck -->|"검증 실패 확정"| Stop
+        OutputCheck -->|"통과"| Review["담당자 검토 대기"]
+    end
+
+    subgraph AWS["AWS 클라우드"]
+        Bedrock["Amazon Bedrock · Claude"]
+    end
+
+    Gateway -->|"Live 모드"| Bedrock
+    Bedrock --> Validation
+    Review --> UI
+    API -->|"검토 의견 제출 · 실행 재개"| Graph
+```
+
+- 네 가지 분석 작업에 RAG와 LLM을 적용합니다.
+- 재시도는 실패한 분석 작업만 대상으로 하며, 횟수를 제한합니다.
+- 종합의견과 초안 구성에는 현재 규칙·템플릿을 사용합니다.
+- 출력 검증은 코드에서 `precheck`라는 이름으로 구현되어 있습니다.
+- 담당자는 웹 화면에서 의견을 수정하고 검토 결과를 저장합니다.
+- HANF 직접 연동과 실제 전용망 구성은 포함하지 않습니다.
+
+### 별도 개인정보 치환·복원 실습
+
+통합 분석 흐름과 별도로 다음 절차를 검증합니다.
+
+1. 로컬에서 개인정보를 대체 식별자로 치환
+2. 복원 매핑은 로컬 메모리에 보관
+3. 외부 전송 전 개인정보 잔존 여부 검사
+4. 모델 응답의 구조와 대체 식별자 유효성 검사
+5. 요청 범위를 확인한 후 로컬에서 원래 값으로 복원
+
+이 치환·복원 절차가 통합 RAG의 자유 형식 문서 전체에
+자동 적용되는 것은 아닙니다.
+
 ## 현재 실행 흐름
 
 1. 서류 검증
