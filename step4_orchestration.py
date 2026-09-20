@@ -331,14 +331,36 @@ def human_review(state):
     if action not in ("confirm", "return"):
         raise ValueError("INVALID_REVIEW_ACTION")
 
-    # confirm은 초안 검토 완료이며 대출 승인 결정이 아닙니다.
+    original_opinion = state["draft"]["opinion"]
+    edited_opinion = response.get("edited_opinion", original_opinion)
+    note = response.get("note", "")
+
+    if (
+        not isinstance(edited_opinion, str)
+        or not edited_opinion.strip()
+        or len(edited_opinion) > 30000
+    ):
+        raise ValueError("INVALID_EDITED_OPINION")
+
+    if not isinstance(note, str) or len(note) > 3000:
+        raise ValueError("INVALID_REVIEW_NOTE")
+
+    # 검토 완료는 대출 승인 결정과 구분합니다.
     status = "REVIEWED" if action == "confirm" else "RETURNED"
 
     return {
         "status": status,
         "draft": {
             **state["draft"],
+            "opinion": edited_opinion,
             "document_status": status,
+            "review": {
+                "action": action,
+                "note": note,
+                "original_opinion": original_opinion,
+                "edited": edited_opinion != original_opinion,
+                "reviewer": "local_demo_reviewer",
+            },
         },
         "events": [f"human_review:{status}"],
     }

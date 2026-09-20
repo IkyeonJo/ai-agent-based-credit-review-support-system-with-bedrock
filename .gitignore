@@ -1,4 +1,4 @@
-# Python-generated files
+# 파이썬 생성 파일 및 디렉토리
 __pycache__/
 *.py[oc]
 build/
@@ -6,11 +6,27 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
-.venv
 
-# model folder
+# 인증 정보
+.env
+.env.*
+!.env.example
+
+# 로컬 환경 및 캐시
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+# 모델, 실행 상태, 생성 결과
 .models/
-
-# Runtime folder
 .runtime/
+outputs/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# 임시파일
+/PRD.md

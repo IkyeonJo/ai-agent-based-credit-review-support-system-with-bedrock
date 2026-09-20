@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>기업여신 심사지원</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f4f6f8;
+      color: #192535;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+    }
+    main { max-width: 1180px; margin: 0 auto; padding: 32px 20px; }
+    h1 { margin: 0; font-size: 28px; }
+    h2 { margin: 0 0 14px; font-size: 19px; }
+    h3 { margin: 0 0 8px; font-size: 17px; }
+    .sub { color: #667085; margin-top: 6px; }
+    .panel {
+      background: white; padding: 22px; margin-top: 20px;
+      border: 1px solid #dde3ea; border-radius: 12px;
+    }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    button, select, textarea {
+      font: inherit; border-radius: 7px; border: 1px solid #bdc8d4;
+    }
+    button { padding: 9px 16px; background: white; cursor: pointer; }
+    button.primary { background: #173e65; color: white; border-color: #173e65; }
+    button:disabled { opacity: .45; cursor: default; }
+    select { padding: 9px; max-width: 100%; }
+    textarea { width: 100%; padding: 12px; background: #fbfcfd; }
+    label { display: block; margin: 12px 0 5px; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .card { border: 1px solid #dde3ea; border-radius: 8px; padding: 16px; }
+    .badge {
+      display: inline-block; border-radius: 6px; background: #edf2f7;
+      padding: 3px 9px; margin-bottom: 8px;
+    }
+    .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .muted { color: #667085; font-size: 13px; }
+    .error { color: #a12626; white-space: pre-wrap; }
+    blockquote {
+      border-left: 3px solid #a3b9ce; margin: 8px 0;
+      padding-left: 12px; color: #526274;
+    }
+    details { margin-top: 12px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    #message { min-height: 26px; margin-top: 12px; }
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+      main { padding: 20px 12px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>기업여신 심사지원</h1>
+  <p class="sub">가상 제조업체 · 근거 기반 분석 및 신청서 검토</p>
+
+  <section class="panel">
+    <h2>분석 실행</h2>
+    <div class="toolbar">
+      <select id="mode">
+        <option value="mock">모의 모델 · 실제 내부 검색</option>
+        <option value="live">Bedrock Claude · 사용료 발생</option>
+      </select>
+      <button class="primary" id="start">새 분석 실행</button>
+      <button id="refresh">목록 새로고침</button>
+    </div>
+    <label for="runs">최근 실행</label>
+    <select id="runs"><option value="">실행을 선택하세요</option></select>
+    <div id="message" role="status"></div>
+  </section>
+
+  <section class="panel">
+    <h2>진행 상태</h2>
+    <div id="status">실행을 선택하세요.</div>
+    <div id="runId" class="muted"></div>
+    <details>
+      <summary>처리 이력</summary>
+      <pre id="events"></pre>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>분석 결과와 근거</h2>
+    <p class="muted">
+      병렬 분석 결과는 체크포인트에 반영된 이후 표시됩니다.
+      결과가 아직 없으면 대기 또는 처리 중입니다.
+    </p>
+    <div class="grid" id="agents"></div>
+  </section>
+
+  <section class="panel">
+    <h2>신청서 초안 검토</h2>
+    <div id="amount" class="muted"></div>
+
+    <label for="opinion">종합의견</label>
+    <textarea id="opinion" rows="12" maxlength="30000" disabled></textarea>
+
+    <label for="note">검토 메모</label>
+    <textarea id="note" rows="3" maxlength="3000" disabled></textarea>
+
+    <div class="toolbar" style="margin-top: 14px">
+      <button class="primary" id="confirm" disabled>검토 완료</button>
+      <button id="return" disabled>반려</button>
+    </div>
+    <p class="muted">검토 완료는 신청서 초안의 검토 완료이며 대출 승인이 아닙니다.</p>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const names = {
+  finance: "재무·크레딧",
+  industry: "산업",
+  relations: "관계사",
+  collateral: "담보"
+};
+const labels = {
+  QUEUED: "실행 대기",
+  RUNNING: "처리 중",
+  REVIEW_PENDING: "직원 검토 대기",
+  REVIEWED: "검토 완료",
+  RETURNED: "반려",
+  ANALYSIS_FAILED: "분석 실패",
+  PRECHECK_FAILED: "사전 점검 실패",
+  FAILED: "처리 오류",
+  RECOVERY_REQUIRED: "중단된 실행 · 상태 확인 필요"
+};
+
+let selected = "";
+let timer = null;
+let loadedDraft = "";
+let lastStatus = "";
+let reviewBusy = false;
+
+function showMessage(text, error=false) {
+  $("message").textContent = text;
+  $("message").className = error ? "error" : "";
+}
+
+async function api(path, options={}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: {"Content-Type": "application/json", ...(options.headers || {})}
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(
+      typeof data.detail === "string"
+        ? data.detail
+        : JSON.stringify(data.detail || data)
+    );
+  }
+  return data;
+}
+
+function element(tag, text, className="") {
+  const node = document.createElement(tag);
+  node.textContent = text;
+  node.className = className;
+  return node;
+}
+
+async function refreshList() {
+  const runs = await api("/api/runs");
+  $("runs").replaceChildren(element("option", "실행을 선택하세요"));
+  $("runs").firstChild.value = "";
+
+  for (const run of runs) {
+    const option = element(
+      "option",
+      `${run.created_at.slice(0,19)} · ${run.mode} · ` +
+      `${labels[run.status] || run.status} · ${run.run_id.slice(0,8)}`
+    );
+    option.value = run.run_id;
+    $("runs").append(option);
+  }
+
+  $("runs").value = selected;
+}
+
+function render(data) {
+  $("status").textContent = labels[data.status] || data.status;
+  if (data.error_type) $("status").textContent += ` / ${data.error_type}`;
+  $("runId").textContent = `실행 ID: ${data.run_id} · 모드: ${data.mode}`;
+  $("events").textContent = data.events.join("\n");
+  $("agents").replaceChildren();
+
+  for (const [key, name] of Object.entries(names)) {
+    const result = data.results[key];
+    const card = element("div", "", "card");
+    card.append(element("h3", name));
+    card.append(element("span", result?.status || "대기 / 처리 중", "badge"));
+
+    if (result) {
+      if (result.error_code) {
+        card.append(element("p", result.error_code, "error"));
+      }
+
+      card.append(element(
+        "p",
+        `시도 ${data.attempts[key] || 0}회 · ` +
+        `${result.elapsed_seconds || 0}초`,
+        "muted"
+      ));
+      card.append(element(
+        "p", "사용량: " + JSON.stringify(result.usage || {}), "muted"
+      ));
+
+      for (const claim of result.claims || []) {
+        card.append(element("p", claim.statement, "text"));
+        card.append(element("div", claim.source_id, "muted"));
+        card.append(element("blockquote", claim.quote, "text"));
+      }
+    }
+
+    $("agents").append(card);
+  }
+
+  const draft = data.draft || {};
+  $("amount").textContent = draft.requested_amount === undefined
+    ? "초안 생성 전"
+    : `신청금액: ${draft.requested_amount.toLocaleString()} ${draft.unit}`;
+
+  // 폴링할 때 직원이 입력 중인 내용을 덮어쓰지 않습니다.
+  if (draft.opinion && (
+    loadedDraft !== data.run_id ||
+    ["REVIEWED", "RETURNED"].includes(data.status) && lastStatus !== data.status
+  )) {
+    $("opinion").value = draft.opinion;
+    $("note").value = draft.review?.note || "";
+    loadedDraft = data.run_id;
+  }
+
+  const canReview = data.status === "REVIEW_PENDING" && !reviewBusy;
+  for (const id of ["opinion", "note", "confirm", "return"]) {
+    $(id).disabled = !canReview;
+  }
+
+  lastStatus = data.status;
+}
+
+async function poll() {
+  const requestedId = selected;
+  if (!requestedId) return;
+
+  try {
+    const data = await api(`/api/runs/${requestedId}`);
+    if (requestedId !== selected) return;
+    render(data);
+
+    if (["QUEUED", "RUNNING"].includes(data.status)) {
+      timer = setTimeout(poll, 1500);
+    } else {
+      await refreshList();
+    }
+  } catch (error) {
+    if (requestedId === selected) showMessage(error.message, true);
+  }
+}
+
+function chooseRun(id) {
+  clearTimeout(timer);
+  selected = id;
+  loadedDraft = "";
+  lastStatus = "";
+  $("opinion").value = "";
+  $("note").value = "";
+  for (const key of ["opinion", "note", "confirm", "return"]) {
+    $(key).disabled = true;
+  }
+  showMessage("");
+  poll();
+}
+
+$("start").onclick = async () => {
+  $("start").disabled = true;
+  try {
+    const data = await api("/api/runs", {
+      method: "POST",
+      body: JSON.stringify({mode: $("mode").value})
+    });
+    chooseRun(data.run_id);
+    await refreshList();
+    showMessage("새 분석 실행이 시작되었습니다.");
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    $("start").disabled = false;
+  }
+};
+
+$("refresh").onclick = () => refreshList().catch(
+  error => showMessage(error.message, true)
+);
+$("runs").onchange = event => chooseRun(event.target.value);
+
+async function submitReview(action) {
+  if (!selected) return;
+
+  reviewBusy = true;
+  $("confirm").disabled = true;
+  $("return").disabled = true;
+
+  try {
+    await api(`/api/runs/${selected}/review`, {
+      method: "POST",
+      body: JSON.stringify({
+        action,
+        edited_opinion: $("opinion").value,
+        note: $("note").value
+      })
+    });
+    showMessage("검토 결과를 저장하고 있습니다.");
+    clearTimeout(timer);
+    await poll();
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    reviewBusy = false;
+    // 실패 시에도 현재 서버 상태에 맞춰 버튼을 복구합니다.
+    clearTimeout(timer);
+    timer = setTimeout(poll, 500);
+  }
+}
+
+$("confirm").onclick = () => submitReview("confirm");
+$("return").onclick = () => submitReview("return");
+
+refreshList().catch(error => showMessage(error.message, true));
+</script>
+</body>
+</html>
